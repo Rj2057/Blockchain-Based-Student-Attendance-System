@@ -12,9 +12,17 @@ contract StudentAttendance {
         uint256 totalMarked;
     }
 
+    struct StudentView {
+        string srn;
+        string name;
+    }
+
     struct Session {
         uint256 id;
+        string section;
+        string subject;
         string courseCode;
+        bool isElective;
         uint256 startTimestamp;
         uint256 endTimestamp;
         bool isOpen;
@@ -24,12 +32,14 @@ contract StudentAttendance {
     mapping(bytes32 => Student) private students;
     mapping(uint256 => Session) public sessions;
     mapping(uint256 => mapping(bytes32 => bool)) private attendanceBySession;
+    mapping(uint256 => mapping(bytes32 => bool)) private sessionAllowedStudents;
+    StudentView[] private studentIndex;
 
     uint256 public nextSessionId = 1;
 
     event InstructorUpdated(address indexed instructor, bool isAuthorized);
     event StudentRegistered(string srn, string name);
-    event SessionCreated(uint256 indexed sessionId, string courseCode, uint256 startTimestamp, uint256 endTimestamp);
+    event SessionCreated(uint256 indexed sessionId, string section, string subject, string courseCode, bool isElective, uint256 startTimestamp, uint256 endTimestamp);
     event SessionClosed(uint256 indexed sessionId);
     event AttendanceMarked(uint256 indexed sessionId, string srn, bool present, uint256 timestamp);
 
@@ -68,24 +78,54 @@ contract StudentAttendance {
             totalMarked: 0
         });
 
+        studentIndex.push(StudentView({
+            srn: srn,
+            name: name
+        }));
+
         emit StudentRegistered(srn, name);
     }
 
-    function createSession(string calldata courseCode, uint256 startTimestamp, uint256 endTimestamp) external onlyInstructor returns (uint256) {
+    function createSession(
+        string calldata section,
+        string calldata subject,
+        string calldata courseCode,
+        bool isElective,
+        string[] calldata electiveSrns,
+        uint256 startTimestamp,
+        uint256 endTimestamp
+    ) external onlyInstructor returns (uint256) {
+        require(bytes(section).length > 0, "Section is required");
+        require(bytes(subject).length > 0, "Subject is required");
         require(bytes(courseCode).length > 0, "Course code is required");
         require(startTimestamp < endTimestamp, "Invalid time range");
+        if (isElective) {
+            require(electiveSrns.length > 0, "Elective needs students");
+        }
 
         uint256 sessionId = nextSessionId;
         sessions[sessionId] = Session({
             id: sessionId,
+            section: section,
+            subject: subject,
             courseCode: courseCode,
+            isElective: isElective,
             startTimestamp: startTimestamp,
             endTimestamp: endTimestamp,
             isOpen: true
         });
 
+        if (isElective) {
+            for (uint256 i = 0; i < electiveSrns.length; i++) {
+                bytes32 srnHash = _hashSRN(electiveSrns[i]);
+                require(students[srnHash].exists, "Elective student not found");
+                require(!sessionAllowedStudents[sessionId][srnHash], "Duplicate elective student");
+                sessionAllowedStudents[sessionId][srnHash] = true;
+            }
+        }
+
         nextSessionId += 1;
-        emit SessionCreated(sessionId, courseCode, startTimestamp, endTimestamp);
+        emit SessionCreated(sessionId, section, subject, courseCode, isElective, startTimestamp, endTimestamp);
 
         return sessionId;
     }
@@ -100,26 +140,16 @@ contract StudentAttendance {
     }
 
     function markAttendance(uint256 sessionId, string calldata srn, bool present) external onlyInstructor {
-        Session storage session = sessions[sessionId];
-        require(session.id != 0, "Session does not exist");
-        require(session.isOpen, "Session is closed");
-        require(block.timestamp >= session.startTimestamp, "Session not started");
-        require(block.timestamp <= session.endTimestamp, "Session ended");
+        _markAttendance(sessionId, srn, present);
+    }
 
-        bytes32 srnHash = _hashSRN(srn);
-        Student storage student = students[srnHash];
-        require(student.exists, "Student not registered");
+    function markAttendanceBatch(uint256 sessionId, string[] calldata srns, bool[] calldata presents) external onlyInstructor {
+        require(srns.length > 0, "No students provided");
+        require(srns.length == presents.length, "Array length mismatch");
 
-        require(!attendanceBySession[sessionId][srnHash], "Attendance already marked for this session");
-
-        attendanceBySession[sessionId][srnHash] = true;
-        student.totalMarked += 1;
-
-        if (present) {
-            student.presentCount += 1;
+        for (uint256 i = 0; i < srns.length; i++) {
+            _markAttendance(sessionId, srns[i], presents[i]);
         }
-
-        emit AttendanceMarked(sessionId, student.srn, present, block.timestamp);
     }
 
     function getStudent(string calldata srn) external view returns (string memory, string memory, uint256, uint256, uint256) {
@@ -135,6 +165,10 @@ contract StudentAttendance {
         return (student.srn, student.name, student.presentCount, student.totalMarked, percentageScaled);
     }
 
+    function getRegisteredStudents() external view returns (StudentView[] memory) {
+        return studentIndex;
+    }
+
     function isAttendanceMarked(uint256 sessionId, string calldata srn) external view returns (bool) {
         bytes32 srnHash = _hashSRN(srn);
         return attendanceBySession[sessionId][srnHash];
@@ -142,5 +176,28 @@ contract StudentAttendance {
 
     function _hashSRN(string calldata srn) private pure returns (bytes32) {
         return keccak256(abi.encodePacked(srn));
+    }
+
+    function _markAttendance(uint256 sessionId, string calldata srn, bool present) private {
+        Session storage session = sessions[sessionId];
+        require(session.id != 0, "Session does not exist");
+        require(session.isOpen, "Session is closed");
+
+        bytes32 srnHash = _hashSRN(srn);
+        Student storage student = students[srnHash];
+        require(student.exists, "Student not registered");
+        if (session.isElective) {
+            require(sessionAllowedStudents[sessionId][srnHash], "Student not part of this elective");
+        }
+        require(!attendanceBySession[sessionId][srnHash], "Attendance already marked for this session");
+
+        attendanceBySession[sessionId][srnHash] = true;
+        student.totalMarked += 1;
+
+        if (present) {
+            student.presentCount += 1;
+        }
+
+        emit AttendanceMarked(sessionId, student.srn, present, block.timestamp);
     }
 }

@@ -21,7 +21,7 @@
       <h1>ChainAttend Dashboard</h1>
       <p class="subtitle">
         Decentralized attendance recording with Solidity smart contracts.
-        Attendance marking is done by entering student SRN manually.
+        Attendance marking supports manual SRN entry and QR scanning.
       </p>
       <button id="connectWalletBtn" class="btn-primary">Connect Wallet</button>
       <p id="walletStatus" class="status">Wallet not connected</p>
@@ -39,16 +39,58 @@
 
           <button type="submit" class="btn-primary">Register</button>
         </form>
+
+        <div class="qr-block">
+          <div class="qr-block-header">
+            <h3>Student QR</h3>
+            <p>QR stores the SRN only. It can be scanned later to fill attendance forms.</p>
+          </div>
+          <div id="studentQrPreview" class="qr-preview">
+            <span>Type an SRN or register a student to generate QR</span>
+          </div>
+          <button id="downloadStudentQrBtn" type="button" class="btn-secondary" disabled>
+            Download QR
+          </button>
+        </div>
       </section>
 
       <section class="card">
         <h2>Create Session</h2>
         <form id="createSessionForm">
+          <label>Section</label>
+          <select id="sectionSelect" required>
+            <option value="H">H</option>
+            <option value="L">L</option>
+          </select>
+
+          <label>Subject Type</label>
+          <select id="subjectTypeSelect" required>
+            <option value="core">Core</option>
+            <option value="elective">Elective</option>
+          </select>
+
+          <label>Subject</label>
+          <input id="subjectInput" list="subjectSuggestions" placeholder="e.g. Blockchain" required />
+          <datalist id="subjectSuggestions">
+            <option value="Blockchain"></option>
+            <option value="Solidity"></option>
+            <option value="Web3"></option>
+            <option value="DBMS"></option>
+            <option value="Operating Systems"></option>
+          </datalist>
+
+          <div id="electiveStudentsGroup" class="hidden">
+            <label>Elective Students</label>
+            <select id="electiveStudentsSelect" multiple size="5"></select>
+            <p class="hint">Select students allowed for this elective session.</p>
+          </div>
+
           <label>Course Code</label>
           <input id="courseCode" placeholder="BCS501" required />
 
           <label>Session Date</label>
           <input id="sessionDate" type="date" required />
+          <p class="hint">Select today or a future date. Attendance can be marked anytime after session creation.</p>
 
           <label>Session Slot (8:00 to 17:00)</label>
           <select id="sessionSlot" required>
@@ -70,11 +112,23 @@
       </section>
 
       <section class="card wide">
-        <h2>Mark Attendance (Manual SRN)</h2>
-        <form id="markAttendanceForm" class="split">
+        <h2>Mark Attendance</h2>
+        <form id="markAttendanceForm" class="split attendance-grid">
+          <div>
+            <label>Session</label>
+            <select id="sessionSelect">
+              <option value="">Select a session</option>
+            </select>
+          </div>
           <div>
             <label>Session ID</label>
             <input id="sessionId" type="number" placeholder="1" required />
+          </div>
+          <div>
+            <label>Registered Student</label>
+            <select id="studentSelect">
+              <option value="">Loading students from blockchain...</option>
+            </select>
           </div>
           <div>
             <label>Student SRN</label>
@@ -89,6 +143,29 @@
           </div>
           <button type="submit" class="btn-primary">Mark Attendance</button>
         </form>
+
+        <div class="bulk-panel">
+          <h3>Fast Mark (One Confirm)</h3>
+          <p>Select multiple students and mark them in one blockchain transaction.</p>
+          <label>Students for Bulk Mark</label>
+          <select id="bulkStudentsSelect" multiple size="6"></select>
+          <button id="bulkMarkBtn" type="button" class="btn-primary">Mark Selected Present (One Tx)</button>
+        </div>
+
+        <div class="scanner-panel">
+          <div class="scanner-panel-head">
+            <div>
+              <h3>QR Scanner</h3>
+              <p>Scan student QR to auto-fill the SRN field.</p>
+            </div>
+            <div class="scanner-actions">
+              <button id="startQrScanBtn" type="button" class="btn-secondary">Start Scanner</button>
+              <button id="stopQrScanBtn" type="button" class="btn-secondary" disabled>Stop Scanner</button>
+            </div>
+          </div>
+          <div id="scanStatus" class="scan-status">Scanner is idle.</div>
+          <div id="qrReader" class="qr-reader hidden"></div>
+        </div>
       </section>
 
       <section class="card wide">
@@ -127,6 +204,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@metamask/sdk@latest/dist/browser/iife/metamask-sdk.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="./config.js"></script>
     <script src="./app.js"></script>
   </body>

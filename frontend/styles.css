@@ -135,6 +135,25 @@ label {
   font-size: 0.82rem;
 }
 
+.btn-secondary {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.72);
+  transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn-secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 input,
 select,
 button {
@@ -174,6 +193,36 @@ select:focus {
   align-items: end;
 }
 
+.attendance-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.bulk-panel {
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.bulk-panel h3 {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.95rem;
+}
+
+.bulk-panel p {
+  margin: 8px 0;
+  color: var(--muted);
+  font-size: 0.83rem;
+}
+
+#bulkStudentsSelect {
+  min-height: 150px;
+}
+
+.attendance-grid .btn-primary {
+  grid-column: 1 / -1;
+}
+
 .inline-form {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -187,6 +236,104 @@ select:focus {
   padding: 12px;
   min-height: 70px;
   background: rgba(255, 255, 255, 0.5);
+}
+
+.qr-block,
+.scanner-panel {
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.qr-block-header h3,
+.scanner-panel-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.qr-block-header p,
+.scanner-panel-head p,
+.scan-status {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.qr-preview {
+  margin-top: 12px;
+  width: 220px;
+  min-height: 220px;
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.78);
+  overflow: hidden;
+  padding: 12px;
+}
+
+.qr-preview span {
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.qr-preview img,
+.qr-preview canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.scanner-panel-head {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.scanner-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.scanner-actions .btn-secondary {
+  width: auto;
+  min-width: 132px;
+  margin-top: 0;
+}
+
+.qr-reader {
+  margin-top: 14px;
+  max-width: 360px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.qr-reader.hidden {
+  display: none;
+}
+
+.hidden {
+  display: none;
+}
+
+#studentSelect {
+  min-height: 44px;
+}
+
+.scanner-panel,
+.qr-block {
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.scan-status {
+  margin-top: 10px;
 }
 
 .records-grid {

@@ -6,7 +6,7 @@ A decentralized attendance tracking project using Solidity smart contracts and a
 
 - Decentralized attendance ledger on blockchain.
 - Instructor-based authorization for secure writes.
-- Manual SRN entry flow (instead of QR code) for attendance marking.
+- Manual SRN entry plus QR scan support for attendance.
 - Smart contract events and immutable attendance logs.
 - Attendance report with percentage calculation.
 - Responsive frontend dashboard with modern UI.
@@ -17,6 +17,7 @@ A decentralized attendance tracking project using Solidity smart contracts and a
 - Hardhat
 - Ethers.js (frontend integration)
 - HTML/CSS/JavaScript frontend
+- Browser-based QR generation/scanning
 
 ## Project Structure
 
@@ -70,18 +71,23 @@ npm run deploy:local
 5. Update `frontend/config.js` with deployed contract address.
 
 6. In the UI, create sessions using:
-  - Session date
-  - Predefined class slot between `08:00` and `17:00`
+   - Session date
+   - Predefined class slot between `08:00` and `17:00`
+7. Register students in the UI. A QR code will be generated from the SRN.
 
-7. Start a static server from project root (example):
+8. Start a static server from project root (example):
 
 ```bash
 python3 -m http.server 5500
 ```
 
-8. Open browser:
+9. Open browser:
 
 - `http://localhost:5500/frontend/`
+
+10. For attendance:
+  - either type the SRN manually,
+  - or use the QR scanner to fill the SRN field automatically.
 
 ## Sepolia Deployment (Optional)
 
@@ -97,6 +103,7 @@ npm run deploy:sepolia
 Note:
 - `SEPOLIA_RPC_URL` and `PRIVATE_KEY` are used by Hardhat scripts for deployment.
 - Frontend transactions are signed by MetaMask account, not by the `.env` private key.
+- QR codes are for student SRNs only; the blockchain contract still stores attendance.
 
 ## End-to-End Deployment Checklist
 
