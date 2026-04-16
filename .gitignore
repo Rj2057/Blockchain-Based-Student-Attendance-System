@@ -1,1 +1,26 @@
-node_modules
+node_modules/
+
+# Hardhat generated files
+artifacts/
+cache/
+typechain/
+coverage/
+coverage.json
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
