@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ChainAttend | Student Attendance</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Sora:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg-orb bg-orb-a"></div>
+    <div class="bg-orb bg-orb-b"></div>
+
+    <header class="hero">
+      <p class="eyebrow">Blockchain Attendance</p>
+      <h1>ChainAttend Dashboard</h1>
+      <p class="subtitle">
+        Decentralized attendance recording with Solidity smart contracts.
+        Attendance marking is done by entering student SRN manually.
+      </p>
+      <button id="connectWalletBtn" class="btn-primary">Connect Wallet</button>
+      <p id="walletStatus" class="status">Wallet not connected</p>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <h2>Register Student</h2>
+        <form id="registerStudentForm">
+          <label>SRN</label>
+          <input id="studentSrn" placeholder="PES1UG22CS001" required />
+
+          <label>Name</label>
+          <input id="studentName" placeholder="Student full name" required />
+
+          <button type="submit" class="btn-primary">Register</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Create Session</h2>
+        <form id="createSessionForm">
+          <label>Course Code</label>
+          <input id="courseCode" placeholder="BCS501" required />
+
+          <label>Session Date</label>
+          <input id="sessionDate" type="date" required />
+
+          <label>Session Slot (8:00 to 17:00)</label>
+          <select id="sessionSlot" required>
+            <option value="08:00|09:00">08:00 AM - 09:00 AM</option>
+            <option value="09:00|10:00">09:00 AM - 10:00 AM</option>
+            <option value="10:00|11:00">10:00 AM - 11:00 AM</option>
+            <option value="11:00|12:00">11:00 AM - 12:00 PM</option>
+            <option value="12:00|13:00">12:00 PM - 01:00 PM</option>
+            <option value="13:00|14:00">01:00 PM - 02:00 PM</option>
+            <option value="14:00|15:00">02:00 PM - 03:00 PM</option>
+            <option value="15:00|16:00">03:00 PM - 04:00 PM</option>
+            <option value="16:00|17:00">04:00 PM - 05:00 PM</option>
+          </select>
+
+          <p class="hint">Select a class window between 08:00 and 17:00.</p>
+
+          <button type="submit" class="btn-primary">Create</button>
+        </form>
+      </section>
+
+      <section class="card wide">
+        <h2>Mark Attendance (Manual SRN)</h2>
+        <form id="markAttendanceForm" class="split">
+          <div>
+            <label>Session ID</label>
+            <input id="sessionId" type="number" placeholder="1" required />
+          </div>
+          <div>
+            <label>Student SRN</label>
+            <input id="markSrn" placeholder="PES1UG22CS001" required />
+          </div>
+          <div>
+            <label>Present?</label>
+            <select id="presentFlag">
+              <option value="true">Present</option>
+              <option value="false">Absent</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary">Mark Attendance</button>
+        </form>
+      </section>
+
+      <section class="card wide">
+        <h2>Student Attendance Report</h2>
+        <form id="reportForm" class="inline-form">
+          <input id="reportSrn" placeholder="Enter SRN" required />
+          <button type="submit" class="btn-primary">Fetch Report</button>
+        </form>
+
+        <div id="reportOutput" class="report"></div>
+      </section>
+
+      <section class="card wide">
+        <h2>Registered Records</h2>
+        <div class="records-grid">
+          <div class="records-panel">
+            <h3>Students</h3>
+            <div id="recentStudents" class="records-list"></div>
+          </div>
+          <div class="records-panel">
+            <h3>Sessions</h3>
+            <div id="recentSessions" class="records-list"></div>
+          </div>
+          <div class="records-panel">
+            <h3>Attendance Marks</h3>
+            <div id="recentMarks" class="records-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card wide">
+        <h2>Activity Log</h2>
+        <pre id="logBox" class="log-box"></pre>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@metamask/sdk@latest/dist/browser/iife/metamask-sdk.js"></script>
+    <script src="./config.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
