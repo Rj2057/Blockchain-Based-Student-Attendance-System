@@ -2,14 +2,17 @@ const connectWalletBtn = document.getElementById("connectWalletBtn");
 const walletStatus = document.getElementById("walletStatus");
 const logBox = document.getElementById("logBox");
 const reportOutput = document.getElementById("reportOutput");
+const recentSubjectsEl = document.getElementById("recentSubjects");
 const recentStudentsEl = document.getElementById("recentStudents");
 const recentSessionsEl = document.getElementById("recentSessions");
 const recentMarksEl = document.getElementById("recentMarks");
 const sectionSelect = document.getElementById("sectionSelect");
-const subjectInput = document.getElementById("subjectInput");
-const studentSelect = document.getElementById("studentSelect");
+const subjectSelect = document.getElementById("subjectSelect");
+const courseCodeInput = document.getElementById("courseCode");
 const sessionSelect = document.getElementById("sessionSelect");
-const bulkStudentsSelect = document.getElementById("bulkStudentsSelect");
+const bulkAttendanceList = document.getElementById("bulkAttendanceList");
+const bulkAllFlag = document.getElementById("bulkAllFlag");
+const applyBulkAllBtn = document.getElementById("applyBulkAllBtn");
 const bulkMarkBtn = document.getElementById("bulkMarkBtn");
 const studentQrPreview = document.getElementById("studentQrPreview");
 const downloadStudentQrBtn = document.getElementById("downloadStudentQrBtn");
@@ -19,6 +22,7 @@ const qrReader = document.getElementById("qrReader");
 const scanStatus = document.getElementById("scanStatus");
 
 const registerStudentForm = document.getElementById("registerStudentForm");
+const registerSubjectForm = document.getElementById("registerSubjectForm");
 const createSessionForm = document.getElementById("createSessionForm");
 const markAttendanceForm = document.getElementById("markAttendanceForm");
 const reportForm = document.getElementById("reportForm");
@@ -32,6 +36,7 @@ let qrScannerActive = false;
 let qrStopInProgress = false;
 let qrDecodeHandled = false;
 let currentQrValue = "";
+let blockchainSubjects = [];
 let blockchainStudents = [];
 let blockchainSessions = [];
 
@@ -40,6 +45,7 @@ const TIME_MAX = "17:00";
 const RECORD_LIMIT = 6;
 
 const uiRecords = {
+  subjects: [],
   students: [],
   sessions: [],
   marks: []
@@ -49,10 +55,6 @@ function appendLog(message) {
   const timestamp = new Date().toLocaleTimeString();
   logBox.textContent += `[${timestamp}] ${message}\n`;
   logBox.scrollTop = logBox.scrollHeight;
-}
-
-function setScanStatus(message) {
-  scanStatus.textContent = message;
 }
 
 function clearElement(element) {
@@ -68,51 +70,83 @@ function normalizeStudentResult(student) {
   };
 }
 
-function renderStudentDropdown() {
-  clearElement(studentSelect);
-  clearElement(bulkStudentsSelect);
+function normalizeSubjectResult(subject) {
+  return {
+    subject: subject?.subject ?? subject?.[0] ?? "",
+    courseCode: subject?.courseCode ?? subject?.[1] ?? ""
+  };
+}
 
-  if (!blockchainStudents.length) {
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "No registered students yet";
-    placeholder.disabled = true;
-    placeholder.selected = true;
-    studentSelect.appendChild(placeholder);
-    studentSelect.disabled = true;
-
-    const bulkPlaceholder = document.createElement("option");
-    bulkPlaceholder.value = "";
-    bulkPlaceholder.textContent = "No students available";
-    bulkPlaceholder.disabled = true;
-    bulkPlaceholder.selected = true;
-    bulkStudentsSelect.appendChild(bulkPlaceholder);
-    bulkStudentsSelect.disabled = true;
-    bulkMarkBtn.disabled = true;
-    return;
-  }
-
-  studentSelect.disabled = false;
-  bulkStudentsSelect.disabled = true;
-  bulkMarkBtn.disabled = false;
+function renderSubjectDropdown() {
+  clearElement(subjectSelect);
 
   const defaultOption = document.createElement("option");
   defaultOption.value = "";
-  defaultOption.textContent = "Select a registered student";
+  defaultOption.textContent = blockchainSubjects.length ? "Select a registered subject" : "No subjects registered yet";
   defaultOption.disabled = true;
   defaultOption.selected = true;
-  studentSelect.appendChild(defaultOption);
+  subjectSelect.appendChild(defaultOption);
+
+  if (!blockchainSubjects.length) {
+    subjectSelect.disabled = true;
+    courseCodeInput.value = "";
+    return;
+  }
+
+  subjectSelect.disabled = false;
+  blockchainSubjects.forEach((item, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = `${item.subject} | ${item.courseCode}`;
+    subjectSelect.appendChild(option);
+  });
+
+  if (subjectSelect.value === "") {
+    subjectSelect.value = "0";
+  }
+
+  syncSelectedSubject();
+}
+
+function renderStudentDropdown() {
+  clearElement(bulkAttendanceList);
+
+  if (!blockchainStudents.length) {
+    const empty = document.createElement("p");
+    empty.className = "record-empty";
+    empty.textContent = "No students available for bulk attendance.";
+    bulkAttendanceList.appendChild(empty);
+    bulkMarkBtn.disabled = true;
+    applyBulkAllBtn.disabled = true;
+    return;
+  }
+
+  bulkMarkBtn.disabled = false;
+  applyBulkAllBtn.disabled = false;
 
   blockchainStudents.forEach((student) => {
-    const option = document.createElement("option");
-    option.value = student.srn;
-    option.textContent = `${student.srn} | ${student.name}`;
-    studentSelect.appendChild(option);
+    const row = document.createElement("div");
+    row.className = "bulk-attendance-row";
 
-    const bulkOption = document.createElement("option");
-    bulkOption.value = student.srn;
-    bulkOption.textContent = `${student.srn} | ${student.name}`;
-    bulkStudentsSelect.appendChild(bulkOption);
+    const details = document.createElement("div");
+    details.className = "bulk-attendance-details";
+    details.innerHTML = `<strong>${student.srn}</strong><span>${student.name}</span>`;
+
+    const statusWrap = document.createElement("div");
+    statusWrap.className = "bulk-attendance-status";
+
+    const statusSelect = document.createElement("select");
+    statusSelect.className = "bulk-attendance-select";
+    statusSelect.dataset.srn = student.srn;
+    statusSelect.innerHTML = `
+      <option value="true">Present</option>
+      <option value="false">Absent</option>
+    `;
+
+    statusWrap.appendChild(statusSelect);
+    row.appendChild(details);
+    row.appendChild(statusWrap);
+    bulkAttendanceList.appendChild(row);
   });
 }
 
@@ -146,18 +180,51 @@ function renderSessionDropdown() {
   defaultOption.selected = true;
   sessionSelect.appendChild(defaultOption);
 
+  const defaultOptionScanner = document.createElement("option");
+  defaultOptionScanner.value = "";
+  defaultOptionScanner.textContent = "Select a session";
+  defaultOptionScanner.selected = true;
+  document.getElementById("sessionSelectScanner").innerHTML = "";
+  document.getElementById("sessionSelectScanner").appendChild(defaultOptionScanner);
+
   if (!blockchainSessions.length) {
     sessionSelect.disabled = true;
+    document.getElementById("sessionSelectScanner").disabled = true;
     return;
   }
 
   sessionSelect.disabled = false;
+  document.getElementById("sessionSelectScanner").disabled = false;
   blockchainSessions.forEach((session) => {
     const option = document.createElement("option");
     option.value = String(session.id);
     option.textContent = formatSessionLabel(session);
     sessionSelect.appendChild(option);
+
+    const optionScanner = document.createElement("option");
+    optionScanner.value = String(session.id);
+    optionScanner.textContent = formatSessionLabel(session);
+    document.getElementById("sessionSelectScanner").appendChild(optionScanner);
   });
+}
+
+async function refreshBlockchainSubjects() {
+  if (!contract) {
+    blockchainSubjects = [];
+    renderSubjectDropdown();
+    return;
+  }
+
+  const subjects = await contract.getRegisteredSubjects();
+  blockchainSubjects = Array.from(subjects, normalizeSubjectResult).filter((item) => item.subject && item.courseCode);
+  renderSubjectDropdown();
+
+  uiRecords.subjects = blockchainSubjects.map((item) => ({
+    subject: item.subject,
+    courseCode: item.courseCode,
+    time: "On-chain"
+  }));
+  renderRecords();
 }
 
 async function refreshBlockchainSessions() {
@@ -200,11 +267,20 @@ async function refreshBlockchainStudents() {
   renderRecords();
 }
 
-function syncSelectedStudent() {
-  const srn = studentSelect.value.trim();
-  if (srn) {
-    document.getElementById("markSrn").value = srn;
+function syncSelectedSubject() {
+  if (subjectSelect.value === "") {
+    courseCodeInput.value = "";
+    return;
   }
+
+  const selectedIndex = Number(subjectSelect.value);
+  const subject = blockchainSubjects[selectedIndex];
+  if (!subject) {
+    courseCodeInput.value = "";
+    return;
+  }
+
+  courseCodeInput.value = subject.courseCode;
 }
 
 function syncSelectedSession() {
@@ -273,6 +349,10 @@ function downloadQrImage() {
   anchor.click();
 }
 
+function setScanStatus(message) {
+  scanStatus.textContent = message;
+}
+
 function extractSrnFromQrPayload(payload) {
   const trimmed = payload.trim();
   if (!trimmed) {
@@ -293,6 +373,22 @@ function extractSrnFromQrPayload(payload) {
   }
 
   return trimmed;
+}
+
+function getScannerPrerequisiteMessage() {
+  if (!window.isSecureContext && !["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+    return "Camera access needs localhost or HTTPS. Open the app through http://localhost or a secure site, not file://.";
+  }
+
+  if (!navigator.mediaDevices?.getUserMedia) {
+    return "This browser does not allow camera access. Use a modern browser like Chrome or Edge.";
+  }
+
+  if (!window.Html5Qrcode) {
+    return "QR scanner library did not load. Check internet access and refresh the page.";
+  }
+
+  return "";
 }
 
 async function stopQrScanner() {
@@ -328,8 +424,9 @@ async function stopQrScanner() {
 }
 
 async function startQrScanner() {
-  if (!window.Html5Qrcode) {
-    throw new Error("QR scanner library not loaded.");
+  const prerequisiteMessage = getScannerPrerequisiteMessage();
+  if (prerequisiteMessage) {
+    throw new Error(prerequisiteMessage);
   }
 
   if (qrScannerActive) {
@@ -347,38 +444,48 @@ async function startQrScanner() {
 
   qrDecodeHandled = false;
 
-  await qrScanner.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: { width: 220, height: 220 } },
-    async (decodedText) => {
-      if (qrDecodeHandled) {
-        return;
+  try {
+    await qrScanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 220, height: 220 } },
+      async (decodedText) => {
+        if (qrDecodeHandled) {
+          return;
+        }
+
+        const srn = extractSrnFromQrPayload(decodedText);
+        if (!srn) {
+          appendLog("QR scan returned empty text.");
+          return;
+        }
+
+        qrDecodeHandled = true;
+
+        document.getElementById("markSrn").value = srn;
+        appendLog(`QR scanned successfully: ${srn}`);
+        setScanStatus(`Scanned SRN: ${srn}`);
+        await stopQrScanner();
+      },
+      () => {
+        // keep scanning quietly until a code is found
       }
+    );
 
-      const srn = extractSrnFromQrPayload(decodedText);
-      if (!srn) {
-        appendLog("QR scan returned empty text.");
-        return;
-      }
-
-      qrDecodeHandled = true;
-
-      document.getElementById("markSrn").value = srn;
-      appendLog(`QR scanned successfully: ${srn}`);
-      setScanStatus(`Scanned SRN: ${srn}`);
-      await stopQrScanner();
-    },
-    () => {
-      // keep scanning quietly until a code is found
-    }
-  );
-
-  qrScannerActive = true;
-  setScanStatus("Camera active. Point it at a student QR code.");
+    qrScannerActive = true;
+    setScanStatus("Camera active. Point it at a student QR code.");
+  } catch (error) {
+    qrScannerActive = false;
+    qrDecodeHandled = false;
+    qrStopInProgress = false;
+    qrReader.classList.add("hidden");
+    startQrScanBtn.disabled = false;
+    stopQrScanBtn.disabled = true;
+    throw error;
+  }
 }
 
 function formatUserError(error) {
-  const rawMessage = error?.reason || error?.shortMessage || error?.message || "Unknown error";
+  const rawMessage = error?.reason || error?.shortMessage || error?.message || error?.name || "Unknown error";
 
   if (rawMessage.includes("RPC endpoint returned too many errors")) {
     return "RPC endpoint is overloaded/unavailable. For local deploy, switch MetaMask to Localhost 8545, keep `npm run node` running, then reconnect wallet.";
@@ -388,7 +495,33 @@ function formatUserError(error) {
     return "Request was rejected in MetaMask.";
   }
 
+  if (error?.name === "NotAllowedError" || error?.name === "PermissionDeniedError") {
+    return "Camera permission was denied. Allow camera access in the browser and try again.";
+  }
+
+  if (error?.name === "NotFoundError") {
+    return "No camera was found. Connect a webcam or check browser camera access.";
+  }
+
+  if (error?.name === "NotReadableError") {
+    return "Camera is already in use by another app or tab. Close other camera apps and try again.";
+  }
+
+  if (error?.name === "OverconstrainedError") {
+    return "The camera constraints are not supported by your device. Try another browser or camera.";
+  }
+
   return rawMessage;
+}
+
+function formatDebugError(error) {
+  const parts = [];
+  if (error?.name) parts.push(`name=${error.name}`);
+  if (error?.code !== undefined) parts.push(`code=${error.code}`);
+  if (error?.message) parts.push(`message=${error.message}`);
+  if (error?.reason) parts.push(`reason=${error.reason}`);
+  if (error?.shortMessage) parts.push(`shortMessage=${error.shortMessage}`);
+  return parts.length ? parts.join(" | ") : JSON.stringify(error);
 }
 
 async function ensureExpectedNetwork() {
@@ -452,6 +585,7 @@ async function connectWallet() {
     signer
   );
 
+  await refreshBlockchainSubjects();
   await refreshBlockchainStudents();
   await refreshBlockchainSessions();
   appendLog("Wallet connected and contract initialized.");
@@ -544,6 +678,16 @@ function renderRecordList(container, list, renderFn, emptyMessage) {
 
 function renderRecords() {
   renderRecordList(
+    recentSubjectsEl,
+    uiRecords.subjects,
+    (entry) => ({
+      title: `${entry.subject} | ${entry.courseCode}`,
+      detail: `Registered at ${entry.time}`
+    }),
+    "No subjects registered yet."
+  );
+
+  renderRecordList(
     recentStudentsEl,
     uiRecords.students,
     (entry) => ({
@@ -609,12 +753,32 @@ registerStudentForm.addEventListener("submit", async (event) => {
   }
 });
 
+registerSubjectForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const subject = document.getElementById("subjectName").value.trim();
+  const courseCode = document.getElementById("subjectCode").value.trim();
+
+  try {
+    await ensureContract();
+    appendLog(`Registering subject ${subject} ...`);
+    const tx = await contract.registerSubject(subject, courseCode);
+    await tx.wait();
+    appendLog(`Subject ${subject} registered.`);
+    await refreshBlockchainSubjects();
+    registerSubjectForm.reset();
+  } catch (error) {
+    appendLog(`Subject registration failed: ${formatUserError(error)}`);
+  }
+});
+
 createSessionForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const section = sectionSelect.value;
-  const subject = subjectInput.value.trim();
-  const courseCode = document.getElementById("courseCode").value.trim();
+  const selectedSubject = subjectSelect.value === "" ? null : blockchainSubjects[Number(subjectSelect.value)];
+  const subject = selectedSubject?.subject || "";
+  const courseCode = selectedSubject?.courseCode || courseCodeInput.value.trim();
   const sessionDate = document.getElementById("sessionDate").value;
   const sessionSlot = document.getElementById("sessionSlot").value;
   const [startTime, endTime] = sessionSlot.split("|");
@@ -630,6 +794,9 @@ createSessionForm.addEventListener("submit", async (event) => {
 
     if (startTimestamp >= endTimestamp) {
       throw new Error("End time must be after start time.");
+    }
+    if (!selectedSubject) {
+      throw new Error("Add and select a subject before creating a session.");
     }
 
     appendLog(`Creating session for ${courseCode} ...`);
@@ -655,6 +822,7 @@ createSessionForm.addEventListener("submit", async (event) => {
     sessionSelect.value = String(sessionId);
     syncSelectedSession();
     createSessionForm.reset();
+    syncSelectedSubject();
     setSessionDefaults();
   } catch (error) {
     appendLog(`Session creation failed: ${formatUserError(error)}`);
@@ -664,8 +832,8 @@ createSessionForm.addEventListener("submit", async (event) => {
 markAttendanceForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  const sessionId = document.getElementById("sessionId").value;
-  const srn = studentSelect.value.trim() || document.getElementById("markSrn").value.trim();
+  const sessionId = document.getElementById("sessionIdScanner").value;
+  const srn = document.getElementById("markSrn").value.trim();
   const present = document.getElementById("presentFlag").value === "true";
 
   try {
@@ -713,8 +881,8 @@ reportForm.addEventListener("submit", async (event) => {
 
 connectWalletBtn.addEventListener("click", connectWallet);
 downloadStudentQrBtn.addEventListener("click", downloadQrImage);
-studentSelect.addEventListener("change", () => {
-  syncSelectedStudent();
+subjectSelect.addEventListener("change", () => {
+  syncSelectedSubject();
 });
 sessionSelect.addEventListener("change", () => {
   syncSelectedSession();
@@ -727,33 +895,37 @@ bulkMarkBtn.addEventListener("click", async () => {
     if (!sessionId) {
       throw new Error("Select a session first.");
     }
-    const studentsForBatch = blockchainStudents.map((student) => student.srn);
-
-    if (!studentsForBatch.length) {
+    const statusSelects = Array.from(bulkAttendanceList.querySelectorAll("select.bulk-attendance-select"));
+    if (!statusSelects.length) {
       throw new Error("No registered students available for bulk mark.");
     }
 
-    const presentFlags = Array(studentsForBatch.length).fill(true);
+    const studentsForBatch = statusSelects.map((select) => select.dataset.srn);
+    const presentFlags = statusSelects.map((select) => select.value === "true");
+
     appendLog(`Bulk marking ${studentsForBatch.length} students in session ${sessionId} ...`);
     const tx = await contract.markAttendanceBatch(sessionId, studentsForBatch, presentFlags);
     await tx.wait();
 
-    studentsForBatch.forEach((srn) => {
+    studentsForBatch.forEach((srn, index) => {
       pushRecord("marks", {
         sessionId,
         srn,
-        present: true,
+        present: presentFlags[index],
         time: new Date().toLocaleTimeString()
       });
     });
 
     appendLog(`Bulk attendance marked for ${studentsForBatch.length} students.`);
-    Array.from(bulkStudentsSelect.options).forEach((option) => {
-      option.selected = false;
-    });
   } catch (error) {
     appendLog(`Bulk attendance failed: ${formatUserError(error)}`);
   }
+});
+applyBulkAllBtn.addEventListener("click", () => {
+  const value = bulkAllFlag.value;
+  Array.from(bulkAttendanceList.querySelectorAll("select.bulk-attendance-select")).forEach((select) => {
+    select.value = value;
+  });
 });
 startQrScanBtn.addEventListener("click", async () => {
   try {
@@ -761,6 +933,7 @@ startQrScanBtn.addEventListener("click", async () => {
   } catch (error) {
     const message = formatUserError(error);
     appendLog(`QR scanner failed: ${message}`);
+    appendLog(`QR scanner debug: ${formatDebugError(error)}`);
     setScanStatus(message);
     startQrScanBtn.disabled = false;
     stopQrScanBtn.disabled = true;
@@ -776,16 +949,16 @@ stopQrScanBtn.addEventListener("click", async () => {
 document.getElementById("studentSrn").addEventListener("input", (event) => {
   renderStudentQr(event.target.value);
 });
-document.getElementById("markSrn").addEventListener("input", (event) => {
-  const inputValue = event.target.value.trim();
-  const matchedStudent = blockchainStudents.find((student) => student.srn === inputValue);
-  if (matchedStudent) {
-    studentSelect.value = matchedStudent.srn;
-  } else if (!inputValue) {
-    studentSelect.value = "";
+document.getElementById("sessionId").addEventListener("input", (event) => {
+  applySelectedSessionMode(event.target.value);
+});
+document.getElementById("sessionSelectScanner").addEventListener("change", () => {
+  const selectedSessionId = document.getElementById("sessionSelectScanner").value;
+  if (selectedSessionId) {
+    document.getElementById("sessionIdScanner").value = selectedSessionId;
   }
 });
-document.getElementById("sessionId").addEventListener("input", (event) => {
+document.getElementById("sessionIdScanner").addEventListener("input", (event) => {
   applySelectedSessionMode(event.target.value);
 });
 
@@ -802,15 +975,19 @@ function setSessionDefaults() {
   dateInput.value = todayString;
   dateInput.min = todayString;
   slotInput.value = "08:00|09:00";
-  if (!subjectInput.value.trim()) {
-    subjectInput.value = "Blockchain";
+  if (blockchainSubjects.length) {
+    subjectSelect.value = "0";
+    syncSelectedSubject();
+  } else {
+    subjectSelect.value = "";
+    courseCodeInput.value = "";
   }
 }
 
 setSessionDefaults();
+renderSubjectDropdown();
 renderRecords();
 renderStudentDropdown();
 renderSessionDropdown();
 showEmptyQrState("Type an SRN or register a student to generate QR");
-setScanStatus("Scanner is idle.");
 appendLog("Ready. Set contract address in frontend/config.js and connect wallet.");

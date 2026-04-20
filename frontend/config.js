@@ -1,6 +1,6 @@
 window.APP_CONFIG = {
   // Replace with deployed contract address from deploy script output.
-  contractAddress: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+  contractAddress: "0x0B306BF915C4d645ff596e518fAf3F9669b97016",
   // Local Hardhat chain id. Set to 11155111 for Sepolia.
   expectedChainId: 31337,
   // Optional: used only when MetaMask SDK fallback is needed.
@@ -22,6 +22,15 @@ window.APP_CONFIG = {
         { "indexed": false, "internalType": "string", "name": "name", "type": "string" }
       ],
       "name": "StudentRegistered",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": false, "internalType": "string", "name": "subject", "type": "string" },
+        { "indexed": false, "internalType": "string", "name": "courseCode", "type": "string" }
+      ],
+      "name": "SubjectRegistered",
       "type": "event"
     },
     {
@@ -62,6 +71,16 @@ window.APP_CONFIG = {
         { "internalType": "string", "name": "name", "type": "string" }
       ],
       "name": "registerStudent",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "string", "name": "subject", "type": "string" },
+        { "internalType": "string", "name": "courseCode", "type": "string" }
+      ],
+      "name": "registerSubject",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -149,6 +168,23 @@ window.APP_CONFIG = {
         { "internalType": "uint256", "name": "", "type": "uint256" },
         { "internalType": "uint256", "name": "", "type": "uint256" },
         { "internalType": "uint256", "name": "", "type": "uint256" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getRegisteredSubjects",
+      "outputs": [
+        {
+          "components": [
+            { "internalType": "string", "name": "subject", "type": "string" },
+            { "internalType": "string", "name": "courseCode", "type": "string" }
+          ],
+          "internalType": "struct StudentAttendance.SubjectView[]",
+          "name": "",
+          "type": "tuple[]"
+        }
       ],
       "stateMutability": "view",
       "type": "function"

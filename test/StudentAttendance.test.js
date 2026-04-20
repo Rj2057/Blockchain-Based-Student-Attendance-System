@@ -23,6 +23,7 @@ describe("StudentAttendance", function () {
     const endTimestamp = latestBlock.timestamp + 3600;
 
     await contract.registerStudent("PES1UG22CS001", "Aarya Rai");
+    await contract.registerSubject("Blockchain", "BCS501");
     await contract.createSession(
       "H",
       "Blockchain",
@@ -54,6 +55,31 @@ describe("StudentAttendance", function () {
     expect(students[1][1]).to.equal("Rohan");
   });
 
+  it("returns registered subjects for dropdowns", async function () {
+    const { contract } = await deployFixture();
+
+    await contract.registerSubject("Blockchain", "BCS501");
+    await contract.registerSubject("DBMS", "BCS303");
+
+    const subjects = await contract.getRegisteredSubjects();
+    expect(subjects.length).to.equal(2);
+    expect(subjects[0][0]).to.equal("Blockchain");
+    expect(subjects[0][1]).to.equal("BCS501");
+    expect(subjects[1][0]).to.equal("DBMS");
+    expect(subjects[1][1]).to.equal("BCS303");
+  });
+
+  it("requires subjects to be registered before creating sessions", async function () {
+    const { contract } = await deployFixture();
+    const latestBlock = await ethers.provider.getBlock("latest");
+    const startTimestamp = latestBlock.timestamp - 60;
+    const endTimestamp = latestBlock.timestamp + 3600;
+
+    await expect(
+      contract.createSession("H", "Blockchain", "BCS501", startTimestamp, endTimestamp)
+    ).to.be.revertedWith("Subject must be registered first");
+  });
+
   it("marks multiple students attendance in one transaction", async function () {
     const { contract } = await deployFixture();
     const latestBlock = await ethers.provider.getBlock("latest");
@@ -62,6 +88,7 @@ describe("StudentAttendance", function () {
 
     await contract.registerStudent("PES1UG22CS001", "Aarya Rai");
     await contract.registerStudent("PES1UG22CS002", "Rohan");
+    await contract.registerSubject("Blockchain", "BCS501");
     await contract.createSession(
       "H",
       "Blockchain",
@@ -100,6 +127,7 @@ describe("StudentAttendance", function () {
 
     await contract.registerStudent("PES1UG22CS001", "Aarya Rai");
     await contract.registerStudent("PES1UG22CS002", "Rohan");
+    await contract.registerSubject("DBMS", "BCS303");
 
     await contract.createSession(
       "H",

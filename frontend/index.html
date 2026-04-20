@@ -55,6 +55,19 @@
       </section>
 
       <section class="card">
+        <h2>Register Subject</h2>
+        <form id="registerSubjectForm">
+          <label>Subject Name</label>
+          <input id="subjectName" placeholder="Blockchain" required />
+
+          <label>Course Code</label>
+          <input id="subjectCode" placeholder="BCS501" required />
+
+          <button type="submit" class="btn-primary">Add Subject</button>
+        </form>
+      </section>
+
+      <section class="card">
         <h2>Create Session</h2>
         <form id="createSessionForm">
           <label>Section</label>
@@ -64,19 +77,14 @@
           </select>
 
           <label>Subject</label>
-          <input id="subjectInput" list="subjectSuggestions" placeholder="e.g. Blockchain" required />
-          <datalist id="subjectSuggestions">
-            <option value="Blockchain"></option>
-            <option value="Solidity"></option>
-            <option value="Web3"></option>
-            <option value="DBMS"></option>
-            <option value="Operating Systems"></option>
-          </datalist>
+          <select id="subjectSelect" required>
+            <option value="">Select a registered subject</option>
+          </select>
 
           <p class="hint">All subjects are mandatory. Any registered student can be marked for a session.</p>
 
           <label>Course Code</label>
-          <input id="courseCode" placeholder="BCS501" required />
+          <input id="courseCode" placeholder="BCS501" readonly required />
 
           <label>Session Date</label>
           <input id="sessionDate" type="date" required />
@@ -103,43 +111,33 @@
 
       <section class="card wide">
         <h2>Mark Attendance</h2>
-        <form id="markAttendanceForm" class="split attendance-grid">
-          <div>
-            <label>Session</label>
-            <select id="sessionSelect">
-              <option value="">Select a session</option>
-            </select>
-          </div>
-          <div>
-            <label>Session ID</label>
-            <input id="sessionId" type="number" placeholder="1" required />
-          </div>
-          <div>
-            <label>Registered Student</label>
-            <select id="studentSelect">
-              <option value="">Loading students from blockchain...</option>
-            </select>
-          </div>
-          <div>
-            <label>Student SRN</label>
-            <input id="markSrn" placeholder="PES1UG22CS001" required />
-          </div>
-          <div>
-            <label>Present?</label>
-            <select id="presentFlag">
-              <option value="true">Present</option>
-              <option value="false">Absent</option>
-            </select>
-          </div>
-          <button type="submit" class="btn-primary">Mark Attendance</button>
-        </form>
-
         <div class="bulk-panel">
           <h3>Fast Mark (One Confirm)</h3>
-          <p>Marks all registered students as present in one blockchain transaction.</p>
-          <label>Students for Bulk Mark</label>
-          <select id="bulkStudentsSelect" multiple size="6"></select>
-          <button id="bulkMarkBtn" type="button" class="btn-primary">Mark All Present (One Tx)</button>
+          <p>Select a session, choose Present or Absent for each student, then update everything in one transaction.</p>
+          <div class="bulk-controls">
+            <div>
+              <label>Session</label>
+              <select id="sessionSelect">
+                <option value="">Select a session</option>
+              </select>
+            </div>
+            <div>
+              <label>Session ID</label>
+              <input id="sessionId" type="number" placeholder="1" required />
+            </div>
+          </div>
+          <div class="bulk-controls">
+            <div>
+              <label>Set All</label>
+              <select id="bulkAllFlag">
+                <option value="true">Present</option>
+                <option value="false">Absent</option>
+              </select>
+            </div>
+            <button id="applyBulkAllBtn" type="button" class="btn-secondary">Apply to All</button>
+          </div>
+          <div id="bulkAttendanceList" class="bulk-attendance-list"></div>
+          <button id="bulkMarkBtn" type="button" class="btn-primary">Update Attendance Once</button>
         </div>
 
         <div class="scanner-panel">
@@ -156,6 +154,31 @@
           <div id="scanStatus" class="scan-status">Scanner is idle.</div>
           <div id="qrReader" class="qr-reader hidden"></div>
         </div>
+
+        <form id="markAttendanceForm" class="split attendance-grid">
+          <div>
+            <label>Session (Scanner)</label>
+            <select id="sessionSelectScanner">
+              <option value="">Select a session</option>
+            </select>
+          </div>
+          <div>
+            <label>Session ID</label>
+            <input id="sessionIdScanner" type="number" placeholder="1" required />
+          </div>
+          <div>
+            <label>Student SRN</label>
+            <input id="markSrn" placeholder="PES1UG22CS001" required />
+          </div>
+          <div>
+            <label>Present?</label>
+            <select id="presentFlag">
+              <option value="true">Present</option>
+              <option value="false">Absent</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary">Mark Attendance</button>
+        </form>
       </section>
 
       <section class="card wide">
@@ -171,6 +194,10 @@
       <section class="card wide">
         <h2>Registered Records</h2>
         <div class="records-grid">
+          <div class="records-panel">
+            <h3>Subjects</h3>
+            <div id="recentSubjects" class="records-list"></div>
+          </div>
           <div class="records-panel">
             <h3>Students</h3>
             <div id="recentStudents" class="records-list"></div>

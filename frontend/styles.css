@@ -215,8 +215,48 @@ select:focus {
   font-size: 0.83rem;
 }
 
-#bulkStudentsSelect {
-  min-height: 150px;
+.bulk-controls {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: end;
+  margin: 12px 0;
+}
+
+.bulk-attendance-list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.bulk-attendance-row {
+  display: grid;
+  grid-template-columns: 1fr 160px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.bulk-attendance-details {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bulk-attendance-details strong {
+  font-size: 0.92rem;
+}
+
+.bulk-attendance-details span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.bulk-attendance-status select {
+  width: 100%;
 }
 
 .attendance-grid .btn-primary {
@@ -338,7 +378,7 @@ select:focus {
 
 .records-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
 }
 
@@ -429,6 +469,11 @@ select:focus {
   }
 
   .records-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bulk-controls,
+  .bulk-attendance-row {
     grid-template-columns: 1fr;
   }
 }

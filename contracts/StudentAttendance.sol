@@ -17,6 +17,11 @@ contract StudentAttendance {
         string name;
     }
 
+    struct SubjectView {
+        string subject;
+        string courseCode;
+    }
+
     struct Session {
         uint256 id;
         string section;
@@ -29,14 +34,17 @@ contract StudentAttendance {
 
     mapping(address => bool) public instructors;
     mapping(bytes32 => Student) private students;
+    mapping(bytes32 => bool) private subjectsRegistered;
     mapping(uint256 => Session) public sessions;
     mapping(uint256 => mapping(bytes32 => bool)) private attendanceBySession;
     StudentView[] private studentIndex;
+    SubjectView[] private subjectIndex;
 
     uint256 public nextSessionId = 1;
 
     event InstructorUpdated(address indexed instructor, bool isAuthorized);
     event StudentRegistered(string srn, string name);
+    event SubjectRegistered(string subject, string courseCode);
     event SessionCreated(uint256 indexed sessionId, string section, string subject, string courseCode, uint256 startTimestamp, uint256 endTimestamp);
     event SessionClosed(uint256 indexed sessionId);
     event AttendanceMarked(uint256 indexed sessionId, string srn, bool present, uint256 timestamp);
@@ -84,6 +92,22 @@ contract StudentAttendance {
         emit StudentRegistered(srn, name);
     }
 
+    function registerSubject(string calldata subject, string calldata courseCode) external onlyInstructor {
+        require(bytes(subject).length > 0, "Subject is required");
+        require(bytes(courseCode).length > 0, "Course code is required");
+
+        bytes32 subjectHash = _hashSubject(subject, courseCode);
+        require(!subjectsRegistered[subjectHash], "Subject already registered");
+
+        subjectsRegistered[subjectHash] = true;
+        subjectIndex.push(SubjectView({
+            subject: subject,
+            courseCode: courseCode
+        }));
+
+        emit SubjectRegistered(subject, courseCode);
+    }
+
     function createSession(
         string calldata section,
         string calldata subject,
@@ -95,6 +119,7 @@ contract StudentAttendance {
         require(bytes(subject).length > 0, "Subject is required");
         require(bytes(courseCode).length > 0, "Course code is required");
         require(startTimestamp < endTimestamp, "Invalid time range");
+        require(subjectsRegistered[_hashSubject(subject, courseCode)], "Subject must be registered first");
 
         uint256 sessionId = nextSessionId;
         sessions[sessionId] = Session({
@@ -152,6 +177,10 @@ contract StudentAttendance {
         return studentIndex;
     }
 
+    function getRegisteredSubjects() external view returns (SubjectView[] memory) {
+        return subjectIndex;
+    }
+
     function isAttendanceMarked(uint256 sessionId, string calldata srn) external view returns (bool) {
         bytes32 srnHash = _hashSRN(srn);
         return attendanceBySession[sessionId][srnHash];
@@ -159,6 +188,10 @@ contract StudentAttendance {
 
     function _hashSRN(string calldata srn) private pure returns (bytes32) {
         return keccak256(abi.encodePacked(srn));
+    }
+
+    function _hashSubject(string calldata subject, string calldata courseCode) private pure returns (bytes32) {
+        return keccak256(abi.encodePacked(subject, "|", courseCode));
     }
 
     function _markAttendance(uint256 sessionId, string calldata srn, bool present) private {
