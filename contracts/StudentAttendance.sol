@@ -22,7 +22,6 @@ contract StudentAttendance {
         string section;
         string subject;
         string courseCode;
-        bool isElective;
         uint256 startTimestamp;
         uint256 endTimestamp;
         bool isOpen;
@@ -32,14 +31,13 @@ contract StudentAttendance {
     mapping(bytes32 => Student) private students;
     mapping(uint256 => Session) public sessions;
     mapping(uint256 => mapping(bytes32 => bool)) private attendanceBySession;
-    mapping(uint256 => mapping(bytes32 => bool)) private sessionAllowedStudents;
     StudentView[] private studentIndex;
 
     uint256 public nextSessionId = 1;
 
     event InstructorUpdated(address indexed instructor, bool isAuthorized);
     event StudentRegistered(string srn, string name);
-    event SessionCreated(uint256 indexed sessionId, string section, string subject, string courseCode, bool isElective, uint256 startTimestamp, uint256 endTimestamp);
+    event SessionCreated(uint256 indexed sessionId, string section, string subject, string courseCode, uint256 startTimestamp, uint256 endTimestamp);
     event SessionClosed(uint256 indexed sessionId);
     event AttendanceMarked(uint256 indexed sessionId, string srn, bool present, uint256 timestamp);
 
@@ -90,8 +88,6 @@ contract StudentAttendance {
         string calldata section,
         string calldata subject,
         string calldata courseCode,
-        bool isElective,
-        string[] calldata electiveSrns,
         uint256 startTimestamp,
         uint256 endTimestamp
     ) external onlyInstructor returns (uint256) {
@@ -99,9 +95,6 @@ contract StudentAttendance {
         require(bytes(subject).length > 0, "Subject is required");
         require(bytes(courseCode).length > 0, "Course code is required");
         require(startTimestamp < endTimestamp, "Invalid time range");
-        if (isElective) {
-            require(electiveSrns.length > 0, "Elective needs students");
-        }
 
         uint256 sessionId = nextSessionId;
         sessions[sessionId] = Session({
@@ -109,23 +102,13 @@ contract StudentAttendance {
             section: section,
             subject: subject,
             courseCode: courseCode,
-            isElective: isElective,
             startTimestamp: startTimestamp,
             endTimestamp: endTimestamp,
             isOpen: true
         });
 
-        if (isElective) {
-            for (uint256 i = 0; i < electiveSrns.length; i++) {
-                bytes32 srnHash = _hashSRN(electiveSrns[i]);
-                require(students[srnHash].exists, "Elective student not found");
-                require(!sessionAllowedStudents[sessionId][srnHash], "Duplicate elective student");
-                sessionAllowedStudents[sessionId][srnHash] = true;
-            }
-        }
-
         nextSessionId += 1;
-        emit SessionCreated(sessionId, section, subject, courseCode, isElective, startTimestamp, endTimestamp);
+        emit SessionCreated(sessionId, section, subject, courseCode, startTimestamp, endTimestamp);
 
         return sessionId;
     }
@@ -186,9 +169,6 @@ contract StudentAttendance {
         bytes32 srnHash = _hashSRN(srn);
         Student storage student = students[srnHash];
         require(student.exists, "Student not registered");
-        if (session.isElective) {
-            require(sessionAllowedStudents[sessionId][srnHash], "Student not part of this elective");
-        }
         require(!attendanceBySession[sessionId][srnHash], "Attendance already marked for this session");
 
         attendanceBySession[sessionId][srnHash] = true;

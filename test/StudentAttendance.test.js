@@ -27,8 +27,6 @@ describe("StudentAttendance", function () {
       "H",
       "Blockchain",
       "BCS501",
-      false,
-      [],
       startTimestamp,
       endTimestamp
     );
@@ -68,8 +66,6 @@ describe("StudentAttendance", function () {
       "H",
       "Blockchain",
       "BCS501",
-      false,
-      [],
       startTimestamp,
       endTimestamp
     );
@@ -96,7 +92,7 @@ describe("StudentAttendance", function () {
     ).to.be.revertedWith("Only instructor can call");
   });
 
-  it("restricts elective attendance to selected students", async function () {
+  it("allows any registered student in a mandatory session", async function () {
     const { contract } = await deployFixture();
     const latestBlock = await ethers.provider.getBlock("latest");
     const startTimestamp = latestBlock.timestamp - 60;
@@ -107,18 +103,19 @@ describe("StudentAttendance", function () {
 
     await contract.createSession(
       "H",
-      "AI Elective",
-      "BCSE701",
-      true,
-      ["PES1UG22CS001"],
+      "DBMS",
+      "BCS303",
       startTimestamp,
       endTimestamp
     );
 
     await contract.markAttendance(1, "PES1UG22CS001", true);
+    await contract.markAttendance(1, "PES1UG22CS002", true);
 
-    await expect(
-      contract.markAttendance(1, "PES1UG22CS002", true)
-    ).to.be.revertedWith("Student not part of this elective");
+    const firstStudent = await contract.getStudent("PES1UG22CS001");
+    const secondStudent = await contract.getStudent("PES1UG22CS002");
+
+    expect(firstStudent[2]).to.equal(1n);
+    expect(secondStudent[2]).to.equal(1n);
   });
 });

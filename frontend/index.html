@@ -63,12 +63,6 @@
             <option value="L">L</option>
           </select>
 
-          <label>Subject Type</label>
-          <select id="subjectTypeSelect" required>
-            <option value="core">Core</option>
-            <option value="elective">Elective</option>
-          </select>
-
           <label>Subject</label>
           <input id="subjectInput" list="subjectSuggestions" placeholder="e.g. Blockchain" required />
           <datalist id="subjectSuggestions">
@@ -79,11 +73,7 @@
             <option value="Operating Systems"></option>
           </datalist>
 
-          <div id="electiveStudentsGroup" class="hidden">
-            <label>Elective Students</label>
-            <select id="electiveStudentsSelect" multiple size="5"></select>
-            <p class="hint">Select students allowed for this elective session.</p>
-          </div>
+          <p class="hint">All subjects are mandatory. Any registered student can be marked for a session.</p>
 
           <label>Course Code</label>
           <input id="courseCode" placeholder="BCS501" required />
@@ -146,10 +136,10 @@
 
         <div class="bulk-panel">
           <h3>Fast Mark (One Confirm)</h3>
-          <p>Select multiple students and mark them in one blockchain transaction.</p>
+          <p>Marks all registered students as present in one blockchain transaction.</p>
           <label>Students for Bulk Mark</label>
           <select id="bulkStudentsSelect" multiple size="6"></select>
-          <button id="bulkMarkBtn" type="button" class="btn-primary">Mark Selected Present (One Tx)</button>
+          <button id="bulkMarkBtn" type="button" class="btn-primary">Mark All Present (One Tx)</button>
         </div>
 
         <div class="scanner-panel">

@@ -1,6 +1,6 @@
 window.APP_CONFIG = {
   // Replace with deployed contract address from deploy script output.
-  contractAddress: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+  contractAddress: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
   // Local Hardhat chain id. Set to 11155111 for Sepolia.
   expectedChainId: 31337,
   // Optional: used only when MetaMask SDK fallback is needed.
@@ -31,7 +31,6 @@ window.APP_CONFIG = {
         { "indexed": false, "internalType": "string", "name": "section", "type": "string" },
         { "indexed": false, "internalType": "string", "name": "subject", "type": "string" },
         { "indexed": false, "internalType": "string", "name": "courseCode", "type": "string" },
-        { "indexed": false, "internalType": "bool", "name": "isElective", "type": "bool" },
         { "indexed": false, "internalType": "uint256", "name": "startTimestamp", "type": "uint256" },
         { "indexed": false, "internalType": "uint256", "name": "endTimestamp", "type": "uint256" }
       ],
@@ -72,8 +71,6 @@ window.APP_CONFIG = {
         { "internalType": "string", "name": "section", "type": "string" },
         { "internalType": "string", "name": "subject", "type": "string" },
         { "internalType": "string", "name": "courseCode", "type": "string" },
-        { "internalType": "bool", "name": "isElective", "type": "bool" },
-        { "internalType": "string[]", "name": "electiveSrns", "type": "string[]" },
         { "internalType": "uint256", "name": "startTimestamp", "type": "uint256" },
         { "internalType": "uint256", "name": "endTimestamp", "type": "uint256" }
       ],
@@ -136,7 +133,6 @@ window.APP_CONFIG = {
         { "internalType": "string", "name": "section", "type": "string" },
         { "internalType": "string", "name": "subject", "type": "string" },
         { "internalType": "string", "name": "courseCode", "type": "string" },
-        { "internalType": "bool", "name": "isElective", "type": "bool" },
         { "internalType": "uint256", "name": "startTimestamp", "type": "uint256" },
         { "internalType": "uint256", "name": "endTimestamp", "type": "uint256" },
         { "internalType": "bool", "name": "isOpen", "type": "bool" }

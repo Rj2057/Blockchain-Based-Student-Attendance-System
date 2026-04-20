@@ -6,10 +6,7 @@ const recentStudentsEl = document.getElementById("recentStudents");
 const recentSessionsEl = document.getElementById("recentSessions");
 const recentMarksEl = document.getElementById("recentMarks");
 const sectionSelect = document.getElementById("sectionSelect");
-const subjectTypeSelect = document.getElementById("subjectTypeSelect");
 const subjectInput = document.getElementById("subjectInput");
-const electiveStudentsGroup = document.getElementById("electiveStudentsGroup");
-const electiveStudentsSelect = document.getElementById("electiveStudentsSelect");
 const studentSelect = document.getElementById("studentSelect");
 const sessionSelect = document.getElementById("sessionSelect");
 const bulkStudentsSelect = document.getElementById("bulkStudentsSelect");
@@ -74,7 +71,6 @@ function normalizeStudentResult(student) {
 function renderStudentDropdown() {
   clearElement(studentSelect);
   clearElement(bulkStudentsSelect);
-  clearElement(electiveStudentsSelect);
 
   if (!blockchainStudents.length) {
     const placeholder = document.createElement("option");
@@ -93,21 +89,12 @@ function renderStudentDropdown() {
     bulkStudentsSelect.appendChild(bulkPlaceholder);
     bulkStudentsSelect.disabled = true;
     bulkMarkBtn.disabled = true;
-
-    const electivePlaceholder = document.createElement("option");
-    electivePlaceholder.value = "";
-    electivePlaceholder.textContent = "No students available";
-    electivePlaceholder.disabled = true;
-    electivePlaceholder.selected = true;
-    electiveStudentsSelect.appendChild(electivePlaceholder);
-    electiveStudentsSelect.disabled = true;
     return;
   }
 
   studentSelect.disabled = false;
-  bulkStudentsSelect.disabled = false;
+  bulkStudentsSelect.disabled = true;
   bulkMarkBtn.disabled = false;
-  electiveStudentsSelect.disabled = false;
 
   const defaultOption = document.createElement("option");
   defaultOption.value = "";
@@ -126,11 +113,6 @@ function renderStudentDropdown() {
     bulkOption.value = student.srn;
     bulkOption.textContent = `${student.srn} | ${student.name}`;
     bulkStudentsSelect.appendChild(bulkOption);
-
-    const electiveOption = document.createElement("option");
-    electiveOption.value = student.srn;
-    electiveOption.textContent = `${student.srn} | ${student.name}`;
-    electiveStudentsSelect.appendChild(electiveOption);
   });
 }
 
@@ -150,10 +132,9 @@ function normalizeSessionResult(session) {
     section: session?.section ?? session?.[1] ?? "",
     subject: session?.subject ?? session?.[2] ?? "",
     courseCode: session?.courseCode ?? session?.[3] ?? "",
-    isElective: session?.isElective ?? session?.[4] ?? false,
-    startTimestamp: session?.startTimestamp ?? session?.[5] ?? 0,
-    endTimestamp: session?.endTimestamp ?? session?.[6] ?? 0,
-    isOpen: session?.isOpen ?? session?.[7] ?? false
+    startTimestamp: session?.startTimestamp ?? session?.[4] ?? 0,
+    endTimestamp: session?.endTimestamp ?? session?.[5] ?? 0,
+    isOpen: session?.isOpen ?? session?.[6] ?? false
   };
 }
 
@@ -240,19 +221,7 @@ function applySelectedSessionMode(sessionIdValue) {
   if (!session) {
     return;
   }
-
-  if (session.isElective) {
-    bulkStudentsSelect.disabled = false;
-    appendLog("Selected session is elective. Pick specific students for bulk mark.");
-    return;
-  }
-
-  appendLog("Selected session is core. Bulk mark will include all registered students.");
-}
-
-function updateSubjectTypeUI() {
-  const isElective = subjectTypeSelect.value === "elective";
-  electiveStudentsGroup.classList.toggle("hidden", !isElective);
+  appendLog(`Selected session #${session.id}. Bulk mark will include all registered students.`);
 }
 
 function showEmptyQrState(message) {
@@ -644,12 +613,8 @@ createSessionForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const section = sectionSelect.value;
-  const isElective = subjectTypeSelect.value === "elective";
   const subject = subjectInput.value.trim();
   const courseCode = document.getElementById("courseCode").value.trim();
-  const electiveSrns = Array.from(electiveStudentsSelect.selectedOptions)
-    .map((option) => option.value)
-    .filter((value) => value);
   const sessionDate = document.getElementById("sessionDate").value;
   const sessionSlot = document.getElementById("sessionSlot").value;
   const [startTime, endTime] = sessionSlot.split("|");
@@ -666,17 +631,12 @@ createSessionForm.addEventListener("submit", async (event) => {
     if (startTimestamp >= endTimestamp) {
       throw new Error("End time must be after start time.");
     }
-    if (isElective && !electiveSrns.length) {
-      throw new Error("Select at least one student for elective subject.");
-    }
 
     appendLog(`Creating session for ${courseCode} ...`);
     const tx = await contract.createSession(
       section,
       subject,
       courseCode,
-      isElective,
-      electiveSrns,
       startTimestamp,
       endTimestamp
     );
@@ -761,22 +721,16 @@ sessionSelect.addEventListener("change", () => {
 });
 bulkMarkBtn.addEventListener("click", async () => {
   const sessionId = document.getElementById("sessionId").value;
-  const selectedSession = blockchainSessions.find((session) => session.id === Number(sessionId));
-  const selectedStudents = Array.from(bulkStudentsSelect.selectedOptions)
-    .map((option) => option.value)
-    .filter((value) => value);
 
   try {
     await ensureContract();
     if (!sessionId) {
       throw new Error("Select a session first.");
     }
-    const studentsForBatch = selectedSession && !selectedSession.isElective
-      ? blockchainStudents.map((student) => student.srn)
-      : selectedStudents;
+    const studentsForBatch = blockchainStudents.map((student) => student.srn);
 
     if (!studentsForBatch.length) {
-      throw new Error("Select at least one student for bulk mark.");
+      throw new Error("No registered students available for bulk mark.");
     }
 
     const presentFlags = Array(studentsForBatch.length).fill(true);
@@ -800,9 +754,6 @@ bulkMarkBtn.addEventListener("click", async () => {
   } catch (error) {
     appendLog(`Bulk attendance failed: ${formatUserError(error)}`);
   }
-});
-subjectTypeSelect.addEventListener("change", () => {
-  updateSubjectTypeUI();
 });
 startQrScanBtn.addEventListener("click", async () => {
   try {
@@ -860,7 +811,6 @@ setSessionDefaults();
 renderRecords();
 renderStudentDropdown();
 renderSessionDropdown();
-updateSubjectTypeUI();
 showEmptyQrState("Type an SRN or register a student to generate QR");
 setScanStatus("Scanner is idle.");
 appendLog("Ready. Set contract address in frontend/config.js and connect wallet.");
